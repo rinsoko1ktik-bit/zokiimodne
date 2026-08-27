@@ -1,0 +1,71 @@
+name: Build ZokiiMenu
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            clang \
+            lld \
+            git
+
+      - name: Download OpenOrbis Toolchain
+        run: |
+          git clone --depth 1 \
+            https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git \
+            "$HOME/OpenOrbis"
+
+      - name: Set OpenOrbis environment
+        run: |
+          echo "OO_PS4_TOOLCHAIN=$HOME/OpenOrbis" >> "$GITHUB_ENV"
+
+      - name: Show project files
+        run: |
+          echo "=== Project ==="
+          find . -maxdepth 4 -type f | sort
+
+          echo "=== OpenOrbis ==="
+          ls -la "$HOME/OpenOrbis"
+
+      - name: Configure CMake
+        run: |
+          export OO_PS4_TOOLCHAIN="$HOME/OpenOrbis"
+
+          cmake \
+            -S . \
+            -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          export OO_PS4_TOOLCHAIN="$HOME/OpenOrbis"
+
+          cmake \
+            --build build \
+            --verbose
+
+      - name: Upload build files
+        if: success()
+        uses: actions/upload-artifact@v4
+
+        with:
+          name: ZokiiMenu-build
+          path: build/
