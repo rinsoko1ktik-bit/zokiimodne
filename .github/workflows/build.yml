@@ -1,11 +1,63 @@
-      - name: Configure CMake
-        run: |
-          export OO_PS4_TOOLCHAIN="$HOME/OpenOrbis"
+name: Build ZokiiMenu
 
-          cmake \
-            -S . \
-            -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER="$HOME/OpenOrbis/llvm/bin/clang" \
-            -DCMAKE_CXX_COMPILER="$HOME/OpenOrbis/llvm/bin/clang++"
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. تحميل المشروع
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. تثبيت أدوات البناء
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            cmake \
+            ninja-build \
+            clang \
+            lld \
+            build-essential
+
+      # 3. تحميل OpenOrbis
+      - name: Clone OpenOrbis
+        run: |
+          git clone --depth 1 \
+            https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git \
+            "$HOME/OpenOrbis"
+
+      # 4. عرض بنية OpenOrbis
+      - name: Inspect OpenOrbis
+        run: |
+          echo "===== OpenOrbis ====="
+          find "$HOME/OpenOrbis" -maxdepth 3 -type d | sort
+
+          echo "===== Clang ====="
+          find "$HOME/OpenOrbis" -type f \
+            -name "clang" -o -name "clang++" \
+            -print
+
+          echo "===== Libraries ====="
+          find "$HOME/OpenOrbis" -type f \
+            -name "*.a" -o -name "*.so" \
+            -print | head -100
+
+      # 5. إعداد متغير OpenOrbis
+      - name: Configure OpenOrbis environment
+        run: |
+          echo "OO_PS4_TOOLCHAIN=$HOME/OpenOrbis" >> "$GITHUB_ENV"
+
+      # 6. التأكد من وجود Pad.h
+      - name: Check OpenOrbis Pad headers
+        run: |
+          echo "===== Pad
